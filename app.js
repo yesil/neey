@@ -393,18 +393,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Get the image data
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-            // Use the BarcodeDetector API if available
-            if ('BarcodeDetector' in window) {
-                const barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
-                const codes = await barcodeDetector.detect(imageData);
-
-                if (codes.length > 0) {
-                    const apiKey = codes[0].rawValue;
-                    if (apiKey.startsWith('sk-')) {
-                        document.getElementById('apiKeyInput').value = apiKey;
-                        stopQrScanner();
-                        return;
-                    }
+            // Try jsQR library
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+            
+            if (code) {
+                const apiKey = code.data;
+                console.log('Found QR code:', apiKey); // For debugging
+                if (apiKey.startsWith('sk-')) {
+                    document.getElementById('apiKeyInput').value = apiKey;
+                    stopQrScanner();
+                    return;
                 }
             }
 
@@ -412,6 +410,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             requestAnimationFrame(scanQrCode);
         } catch (error) {
             console.error('Error scanning QR code:', error);
+            // Continue scanning even if there's an error
+            requestAnimationFrame(scanQrCode);
         }
     }
 
