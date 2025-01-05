@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4A90E2">
+    <title>Chat PWA</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <div class="chat-container">
+        <main class="chat-messages" id="chatMessages">
+            <!-- Messages will be inserted here -->
+        </main>
+
+        <footer class="chat-input">
+            <form id="messageForm">
+                <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
+                <button type="button" id="micButton" class="mic-button">
+                    <span class="material-icons">mic</span>
+                </button>
+                <button type="submit">Send</button>
+            </form>
+        </footer>
+    </div>
+
+    <!-- API Key Modal -->
+    <div id="apiKeyModal" class="modal">
+        <div class="modal-content">
+            <h2>Enter OpenAI API Key</h2>
+            <p>Your API key will be encrypted and stored locally.</p>
+            <form id="apiKeyForm">
+                <div class="input-group">
+                    <input type="password" id="apiKeyInput" placeholder="sk-..." required>
+                    <button type="button" id="scanQrButton" class="scan-button">
+                        <span class="material-icons">qr_code_scanner</span>
+                    </button>
+                </div>
+                <button type="submit">Save API Key</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- QR Scanner Modal -->
+    <div id="qrScannerModal" class="modal">
+        <div class="modal-content scanner-content">
+            <div class="scanner-header">
+                <h2>Scan QR Code</h2>
+                <button id="closeScanner" class="close-button">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            <video id="qrVideo" playsinline></video>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => console.log('ServiceWorker registered'))
+                .catch(err => console.log('ServiceWorker registration failed: ', err));
+        }
+    </script>
+</body>
+</html> 
