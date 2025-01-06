@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const chatMessages = document.getElementById('chatMessages');
     const micButton = document.getElementById('micButton');
     const sendButton = messageForm.querySelector('button[type="submit"]');
+    const clearHistoryButton = document.getElementById('clearHistoryButton');
     const apiKeyModal = document.getElementById('apiKeyModal');
     const apiKeyForm = document.getElementById('apiKeyForm');
 
@@ -113,7 +114,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    async function getAIResponse(message) {
+    // Store messages in localStorage with conversation history
+    let messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
+    
+    async function getAIResponse(message, onChunk) {
         const apiKey = await getStoredApiKey();
         if (!apiKey) {
             apiKeyModal.classList.add('show');
@@ -121,6 +125,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         try {
+            // Build conversation history for context
+            const conversationHistory = messages.map(msg => ({
+                role: msg.type === 'sent' ? 'user' : 'assistant',
+                content: msg.text
+            }));
+
+            // Add system message at the start
+            conversationHistory.unshift({
+                role: "system",
+                content: `Your are a helpful german teacher.
+                Response in a brief, concise, and comment-free format with no title and only with the following sections:
+                Vocabulary: maximum 5 examples.
+                Phrases: maximum 5 examples.
+                Konjugation: most relevant conjugations in Präsens, Perfekt and Präteritum of the most relevant verb. 
+                At the end of your response, suggest 3 suitable follow-up questions under the heading 'Next questions:'.\nFormat:\nNEXT_QUESTIONS:\n1) …\n2) …\n3) …`
+            });
+
+            // Add the new user message
+            conversationHistory.push({
+                role: 'user',
+                content: message
+            });
+
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -129,17 +156,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 },
                 body: JSON.stringify({
                     model: 'gpt-4',
-                    messages: [ 
-                        {
-                            role: "system", 
-                            content: "Provide a brief, concise, and comment-free answer in the language the user asked the question. At the end of your response, suggest 3 suitable follow-up questions under the heading 'NEXT_QUESTIONS:'.\nFormat:\nNEXT_QUESTIONS:\n1) …\n2) …\n3) …",
-                        },
-                        {
-                            role: 'user',
-                            content: message
-                        }
-                    ],
-                    temperature: 0.7
+                    messages: conversationHistory,
+                    temperature: 0.7,
+                    stream: true
                 })
             });
 
@@ -147,8 +166,35 @@ document.addEventListener('DOMContentLoaded', async () => {
                 throw new Error('API request failed');
             }
 
-            const data = await response.json();
-            return data.choices[0].message.content;
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let fullResponse = '';
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+
+                // Decode the chunk
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                        try {
+                            const jsonData = JSON.parse(line.slice(6));
+                            const content = jsonData.choices[0]?.delta?.content;
+                            if (content) {
+                                fullResponse += content;
+                                onChunk(content);
+                            }
+                        } catch (e) {
+                            console.error('Error parsing chunk:', e);
+                        }
+                    }
+                }
+            }
+
+            return fullResponse;
         } catch (error) {
             console.error('Error calling OpenAI API:', error);
             return 'Sorry, I encountered an error processing your message.';
@@ -174,31 +220,91 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Clear input
         messageInput.value = '';
 
-        // Add thinking indicator
-        const thinkingDiv = document.createElement('div');
-        thinkingDiv.className = 'message received thinking';
-        thinkingDiv.textContent = 'Thinking...';
-        chatMessages.appendChild(thinkingDiv);
+        // Create response message container
+        const responseDiv = document.createElement('div');
+        responseDiv.className = 'message received';
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'markdown-content';
+        responseDiv.appendChild(contentDiv);
+        chatMessages.appendChild(responseDiv);
         scrollToBottom();
 
-        // Get AI response
-        const aiResponse = await getAIResponse(text);
+        let accumulatedText = '';
+        let mainContent = '';
+        let questionsContent = '';
+        let isCollectingQuestions = false;
+        
+        // Get AI response with streaming
+        const fullResponse = await getAIResponse(text, (chunk) => {
+            accumulatedText += chunk;
+            
+            // Check if we've hit the questions section
+            if (accumulatedText.includes('Next questions:') || accumulatedText.includes('NEXT_QUESTIONS:')) {
+                if (!isCollectingQuestions) {
+                    isCollectingQuestions = true;
+                    // Split content at the questions marker
+                    const parts = accumulatedText.split(/(?:Next questions:|NEXT_QUESTIONS:)/i);
+                    mainContent = parts[0];
+                    questionsContent = parts[1] || '';
+                    
+                    // Update the main content one last time
+                    contentDiv.innerHTML = marked.parse(mainContent.trim(), {
+                        breaks: true,
+                        gfm: true
+                    });
+                    contentDiv.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightElement(block);
+                    });
+                } else {
+                    // Just collect questions without rendering
+                    questionsContent = accumulatedText.split(/(?:Next questions:|NEXT_QUESTIONS:)/i)[1] || '';
+                }
+            } else if (!isCollectingQuestions) {
+                // Normal content rendering
+                contentDiv.innerHTML = marked.parse(accumulatedText, {
+                    breaks: true,
+                    gfm: true
+                });
+                contentDiv.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            }
+            scrollToBottom();
+        });
 
-        // Remove thinking indicator
-        chatMessages.removeChild(thinkingDiv);
-
-        if (aiResponse) {
+        if (fullResponse) {
+            // Save the complete message
             const response = {
-                text: aiResponse,
+                text: fullResponse,
                 type: 'received',
                 timestamp: new Date().toISOString()
             };
             messages.push(response);
             localStorage.setItem('chatMessages', JSON.stringify(messages));
 
-            const responseElement = createMessageElement(response);
-            chatMessages.appendChild(responseElement);
-            scrollToBottom();
+            // Add follow-up questions if present
+            if (questionsContent) {
+                const questionsDiv = document.createElement('div');
+                questionsDiv.className = 'follow-up-questions';
+                
+                const questions = questionsContent.trim().split('\n')
+                    .map(q => q.trim())
+                    .filter(q => q && q.match(/^\d+\)/))
+                    .map(q => q.replace(/^\d+\)\s*/, ''));
+
+                questions.forEach(question => {
+                    const button = document.createElement('button');
+                    button.className = 'follow-up-button';
+                    button.textContent = question;
+                    button.addEventListener('click', () => {
+                        messageInput.value = question;
+                        sendMessage(question);
+                    });
+                    questionsDiv.appendChild(button);
+                });
+
+                responseDiv.appendChild(questionsDiv);
+            }
         }
     }
 
@@ -280,9 +386,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         micButton.style.display = 'none';
     }
 
-    // Store messages in localStorage
-    let messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
-
     function displayMessages() {
         chatMessages.innerHTML = '';
         messages.forEach(message => {
@@ -296,25 +399,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         const div = document.createElement('div');
         div.classList.add('message', message.type);
         
-        // Split the message if it contains follow-up questions
-        if (message.type === 'received' && message.text.includes('NEXT_QUESTIONS:')) {
-            const [mainText, questionsText] = message.text.split('NEXT_QUESTIONS:');
-            
-            // Add main message text
-            const textDiv = document.createElement('div');
-            textDiv.textContent = mainText.trim();
-            div.appendChild(textDiv);
+        if (message.type === 'received') {
+            // Split the message if it contains follow-up questions
+            const [mainText, questionsText] = message.text.includes('NEXT_QUESTIONS:') 
+                ? message.text.split('NEXT_QUESTIONS:')
+                : [message.text, ''];
 
-            // Add follow-up questions as buttons
+            // Create markdown content div
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'markdown-content';
+            // Use marked to render markdown
+            contentDiv.innerHTML = marked.parse(mainText.trim(), {
+                breaks: true,
+                gfm: true
+            });
+            // Apply syntax highlighting to code blocks
+            contentDiv.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+            div.appendChild(contentDiv);
+
+            // Add follow-up questions as buttons if they exist
             if (questionsText) {
                 const questionsDiv = document.createElement('div');
                 questionsDiv.className = 'follow-up-questions';
                 
-                // Extract questions and create buttons
                 const questions = questionsText.trim().split('\n')
                     .map(q => q.trim())
-                    .filter(q => q && q.match(/^\d+\)/)) // Only process numbered questions
-                    .map(q => q.replace(/^\d+\)\s*/, '')); // Remove the numbering
+                    .filter(q => q && q.match(/^\d+\)/))
+                    .map(q => q.replace(/^\d+\)\s*/, ''));
 
                 questions.forEach(question => {
                     const button = document.createElement('button');
@@ -330,6 +443,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 div.appendChild(questionsDiv);
             }
         } else {
+            // User messages remain as plain text
             div.textContent = message.text;
         }
 
@@ -427,4 +541,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         scanQrButton.style.display = 'none';
     }
+
+    // Add clear history functionality
+    clearHistoryButton.addEventListener('click', () => {
+        if (confirm('Are you sure you want to clear the chat history?')) {
+            messages = [];
+            localStorage.removeItem('chatMessages');
+            chatMessages.innerHTML = '';
+        }
+    });
 }); 

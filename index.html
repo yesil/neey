@@ -11,6 +11,10 @@
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Add highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"  crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
     <div class="chat-container">
@@ -20,6 +24,9 @@
 
         <footer class="chat-input">
             <form id="messageForm">
+                <button type="button" id="clearHistoryButton" class="clear-button" title="Clear chat history">
+                    <span class="material-icons">delete</span>
+                </button>
                 <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
                 <button type="button" id="micButton" class="mic-button">
                     <span class="material-icons">mic</span>

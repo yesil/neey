@@ -289,4 +289,111 @@ button:hover {
     height: calc(100% - 4rem);
     background: #000;
     border-radius: 0.5rem;
+}
+
+.message.received .markdown-content {
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.message.received .markdown-content h1,
+.message.received .markdown-content h2,
+.message.received .markdown-content h3,
+.message.received .markdown-content h4,
+.message.received .markdown-content h5,
+.message.received .markdown-content h6 {
+    margin: 1rem 0 0.5rem;
+    color: #333;
+    font-weight: 600;
+}
+
+.message.received .markdown-content h1 { font-size: 1.5rem; }
+.message.received .markdown-content h2 { font-size: 1.3rem; }
+.message.received .markdown-content h3 { font-size: 1.2rem; }
+.message.received .markdown-content h4 { font-size: 1.1rem; }
+
+.message.received .markdown-content p {
+    margin: 0.5rem 0;
+}
+
+.message.received .markdown-content ul,
+.message.received .markdown-content ol {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+}
+
+.message.received .markdown-content li {
+    margin: 0.25rem 0;
+}
+
+.message.received .markdown-content code {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.3rem;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+.message.received .markdown-content pre {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin: 0.5rem 0;
+}
+
+.message.received .markdown-content pre code {
+    background: none;
+    padding: 0;
+}
+
+.message.received .markdown-content table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.5rem 0;
+}
+
+.message.received .markdown-content th,
+.message.received .markdown-content td {
+    border: 1px solid #dee2e6;
+    padding: 0.5rem;
+    text-align: left;
+}
+
+.message.received .markdown-content th {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.message.received .markdown-content blockquote {
+    border-left: 4px solid #4A90E2;
+    margin: 0.5rem 0;
+    padding-left: 1rem;
+    color: #666;
+}
+
+.message.received .markdown-content hr {
+    border: none;
+    border-top: 1px solid #dee2e6;
+    margin: 1rem 0;
+}
+
+.clear-button {
+    background: transparent;
+    color: #dc3545;
+    border: 1px solid #dc3545;
+    padding: 0.8rem;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.clear-button:hover {
+    background: rgba(220, 53, 69, 0.1);
+}
+
+.clear-button .material-icons {
+    font-size: 1.2rem;
 } 
