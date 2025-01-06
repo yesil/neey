@@ -329,11 +329,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // Request permissions on page load
+    async function requestPermissions() {
+        try {
+            // Request both camera and microphone permissions together
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' },
+                audio: true
+            });
+            // Immediately stop the stream after getting permissions
+            stream.getTracks().forEach(track => track.stop());
+            return true;
+        } catch (error) {
+            console.error('Error requesting permissions:', error);
+            return false;
+        }
+    }
+
+    // Check and request permissions on page load
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        requestPermissions();
+    }
+
     if (SpeechRecognition) {
         recognition = new SpeechRecognition();
         recognition.continuous = false;
         recognition.interimResults = false;
         recognition.lang = 'en-US';
+
+        // Request microphone permission explicitly for speech recognition
+        async function initializeSpeechRecognition() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(track => track.stop());
+            } catch (error) {
+                console.error('Error initializing speech recognition:', error);
+                micButton.style.display = 'none';
+            }
+        }
+
+        initializeSpeechRecognition();
 
         recognition.onstart = () => {
             isListening = true;
@@ -478,13 +513,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             videoStream = await navigator.mediaDevices.getUserMedia(constraints);
             qrVideo.srcObject = videoStream;
-            qrVideo.play();
+            await qrVideo.play();
 
             // Start scanning frames
             requestAnimationFrame(scanQrCode);
         } catch (error) {
             console.error('Error accessing camera:', error);
-            alert('Unable to access camera. Please check permissions.');
+            alert('Unable to access camera. Please check permissions and try again.');
+            qrScannerModal.classList.remove('show');
         }
     }
 

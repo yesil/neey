@@ -5,6 +5,10 @@
     "display": "fullscreen",
     "theme_color": "4b9e62",
     "background_color": "#000000",
+    "permissions": [
+        "camera",
+        "microphone"
+    ],
     "icons": [
         {
             "src": "android/android-launchericon-192-192.png",
