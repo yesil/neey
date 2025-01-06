@@ -57,14 +57,18 @@ body {
     padding: 1rem;
     background: white;
     border-top: 1px solid #dee2e6;
+    width: 100%;
 }
 
 #messageForm {
     display: flex;
     gap: 0.5rem;
+    max-width: 100%;
+    flex-wrap: nowrap;
 }
 
 #messageInput {
+    min-width: 0;
     flex: 1;
     padding: 0.8rem;
     border: 1px solid #dee2e6;
@@ -131,6 +135,30 @@ button:hover {
     .chat-container {
         height: 100vh;
         max-width: 100%;
+    }
+
+    .chat-input {
+        padding: 0.8rem;
+    }
+
+    #messageForm {
+        gap: 0.3rem;
+    }
+
+    #messageInput {
+        padding: 0.6rem 1rem;
+    }
+
+    button, .mic-button, .clear-button {
+        padding: 0.6rem;
+    }
+
+    button[type="submit"] {
+        padding: 0.6rem 1rem;
+    }
+
+    .material-icons {
+        font-size: 1.1rem;
     }
 }
 
