@@ -242,6 +242,7 @@ button:hover {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    width: 100%;
 }
 
 .follow-up-button {
@@ -256,10 +257,30 @@ button:hover {
     transition: all 0.2s;
     white-space: normal;
     word-wrap: break-word;
+    width: 100%;
+    max-width: 100%;
 }
 
 .follow-up-button:hover {
     background: rgba(74, 144, 226, 0.1);
+}
+
+@media (max-width: 600px) {
+    .message {
+        max-width: 90%;
+    }
+
+    .follow-up-questions {
+        margin-top: 0.8rem;
+        gap: 0.4rem;
+    }
+
+    .follow-up-button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+        width: 100%;
+        overflow-wrap: break-word;
+    }
 }
 
 .input-group {

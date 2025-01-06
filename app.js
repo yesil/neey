@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Store messages in localStorage with conversation history
     let messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
-    
+
     async function getAIResponse(message, onChunk) {
         const apiKey = await getStoredApiKey();
         if (!apiKey) {
@@ -134,12 +134,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Add system message at the start
             conversationHistory.unshift({
                 role: "system",
-                content: `Your are a helpful german teacher.
-                Response in a brief, concise, and comment-free format with no title and only with the following sections:
-                Vocabulary: maximum 5 examples.
-                Phrases: maximum 5 examples.
-                Konjugation: most relevant conjugations in Präsens, Perfekt and Präteritum of the most relevant verb. 
-                At the end of your response, suggest 3 suitable follow-up questions under the heading 'Next questions:'.\nFormat:\nNEXT_QUESTIONS:\n1) …\n2) …\n3) …`
+                content: `You are a helpful German teacher. 
+                Respond with language learning content in German in a concise, clear, and structured format with translations in the same language as the user's message.
+                -
+                Below are the only sections you must include in your response:
+                1. **Wortschatz:** Provide 5 examples in relation to the user's message.
+                2. **Sätze:** Provide 5 examples in relation to the user's message.
+                3. **Konjugation:** Include the most important conjugations in Präsens, Perfekt, and Präteritum for the most significant verb related to the topic, inlined.               
+                -
+                End your response with three suitable follow-up prompts in the same language as the user's message(very important), formatted like this:
+                \nNEXT QUESTIONS:\n1) …\n2) …\n3) …`
             });
 
             // Add the new user message
@@ -155,9 +159,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     'Authorization': `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'gpt-4',
+                    model: 'gpt-4o',
                     messages: conversationHistory,
-                    temperature: 0.7,
+                    temperature: 0.9,
                     stream: true
                 })
             });
@@ -233,20 +237,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         let mainContent = '';
         let questionsContent = '';
         let isCollectingQuestions = false;
-        
+
         // Get AI response with streaming
         const fullResponse = await getAIResponse(text, (chunk) => {
             accumulatedText += chunk;
-            
+
             // Check if we've hit the questions section
-            if (accumulatedText.includes('Next questions:') || accumulatedText.includes('NEXT_QUESTIONS:')) {
+            if (accumulatedText.includes('NEXT QUESTIONS:')) {
                 if (!isCollectingQuestions) {
                     isCollectingQuestions = true;
                     // Split content at the questions marker
-                    const parts = accumulatedText.split(/(?:Next questions:|NEXT_QUESTIONS:)/i);
+                    const parts = accumulatedText.split(/(?:NEXT QUESTIONS:)/i);
                     mainContent = parts[0];
                     questionsContent = parts[1] || '';
-                    
+
                     // Update the main content one last time
                     contentDiv.innerHTML = marked.parse(mainContent.trim(), {
                         breaks: true,
@@ -257,7 +261,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     });
                 } else {
                     // Just collect questions without rendering
-                    questionsContent = accumulatedText.split(/(?:Next questions:|NEXT_QUESTIONS:)/i)[1] || '';
+                    questionsContent = accumulatedText.split(/(?:NEXT QUESTIONS:)/i)[1] || '';
                 }
             } else if (!isCollectingQuestions) {
                 // Normal content rendering
@@ -286,7 +290,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (questionsContent) {
                 const questionsDiv = document.createElement('div');
                 questionsDiv.className = 'follow-up-questions';
-                
+
                 const questions = questionsContent.trim().split('\n')
                     .map(q => q.trim())
                     .filter(q => q && q.match(/^\d+\)/))
@@ -398,11 +402,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     function createMessageElement(message) {
         const div = document.createElement('div');
         div.classList.add('message', message.type);
-        
+
         if (message.type === 'received') {
             // Split the message if it contains follow-up questions
-            const [mainText, questionsText] = message.text.includes('NEXT_QUESTIONS:') 
-                ? message.text.split('NEXT_QUESTIONS:')
+            const [mainText, questionsText] = message.text.includes('NEXT QUESTIONS:')
+                ? message.text.split('NEXT QUESTIONS:')
                 : [message.text, ''];
 
             // Create markdown content div
@@ -423,7 +427,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (questionsText) {
                 const questionsDiv = document.createElement('div');
                 questionsDiv.className = 'follow-up-questions';
-                
+
                 const questions = questionsText.trim().split('\n')
                     .map(q => q.trim())
                     .filter(q => q && q.match(/^\d+\)/))
@@ -509,7 +513,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Try jsQR library
             const code = jsQR(imageData.data, imageData.width, imageData.height);
-            
+
             if (code) {
                 const apiKey = code.data;
                 console.log('Found QR code:', apiKey); // For debugging
